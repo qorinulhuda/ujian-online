@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT Online - Ujian</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f4f6f9;color:#172033}
+button{font:inherit;cursor:pointer}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#eaf2ff,#f7f9fc)}
+.card{background:white;border-radius:18px;box-shadow:0 12px 35px rgba(30,50,80,.12)}
+.login{width:min(430px,100%);padding:32px}
+.logo{width:58px;height:58px;border-radius:16px;background:#1769e0;color:white;display:grid;place-items:center;font-weight:800;font-size:22px;margin-bottom:18px}
+h1,h2,h3{margin:0 0 8px}.muted{color:#6d7788}
+input{width:100%;padding:13px 14px;border:1px solid #d8dee8;border-radius:10px;margin:7px 0 14px;outline:none}
+input:focus{border-color:#1769e0;box-shadow:0 0 0 3px rgba(23,105,224,.1)}
+.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:700}
+.primary{background:#1769e0;color:#fff}.secondary{background:#eef2f7;color:#263247}.danger{background:#e5484d;color:white}
+#app{display:none}.topbar{height:72px;background:#fff;border-bottom:1px solid #e4e8ee;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:5}
+.brand{font-weight:800}.timer{background:#fff3e6;color:#b35b00;padding:9px 14px;border-radius:10px;font-weight:800}
+.exam{display:grid;grid-template-columns:260px 1fr;gap:20px;max-width:1250px;margin:22px auto;padding:0 18px}
+.sidebar{padding:20px;height:calc(100vh - 116px);position:sticky;top:94px}
+.palette{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:15px}
+.num{border:1px solid #dce2ea;background:#fff;border-radius:8px;padding:9px 0;font-weight:700}
+.num.answered{background:#dff5e7;border-color:#a9dfba;color:#17713a}.num.current{outline:2px solid #1769e0}
+.legend{font-size:12px;color:#6d7788;margin-top:18px;line-height:1.8}
+.main{padding-bottom:30px}.question{padding:28px}
+.qhead{display:flex;justify-content:space-between;gap:15px;margin-bottom:24px}.badge{background:#eaf2ff;color:#1769e0;padding:7px 10px;border-radius:8px;font-size:13px;font-weight:700}
+.options{display:grid;gap:12px;margin-top:22px}.option{border:1px solid #dce2ea;padding:15px;border-radius:11px;display:flex;gap:12px;align-items:flex-start;transition:.15s}
+.option:hover{border-color:#9abcf0;background:#f8fbff}.option.selected{border-color:#1769e0;background:#edf5ff}
+.option input{width:auto;margin:3px 0 0}.actions{display:flex;justify-content:space-between;margin-top:28px;gap:10px}.right-actions{display:flex;gap:10px}
+.progress{height:7px;background:#e8ecf2;border-radius:10px;overflow:hidden;margin:12px 0 22px}.progress>div{height:100%;background:#1769e0}
+.result{max-width:700px;margin:70px auto;padding:35px;text-align:center}.score{font-size:58px;font-weight:900;color:#1769e0;margin:15px 0}
+.hidden{display:none!important}
+@media(max-width:800px){
+ .exam{grid-template-columns:1fr}.sidebar{position:relative;height:auto;top:0}.palette{grid-template-columns:repeat(8,1fr)}
+ .topbar{padding:0 15px}.question{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-wrap">
+  <div class="card login">
+    <div class="logo">CB</div>
+    <h1>Ujian Online</h1>
+    <p class="muted">Computer Based Test (CBT)</p>
+    <label>Nama Peserta</label>
+    <input id="name" placeholder="Masukkan nama lengkap">
+    <label>Kode Peserta</label>
+    <input id="code" placeholder="Contoh: P001">
+    <button class="btn primary" style="width:100%" onclick="startExam()">Mulai Ujian</button>
+    <p class="muted" style="font-size:12px;margin-top:16px">Demo lokal — data hanya tersimpan di browser ini.</p>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div><div class="brand">CBT ONLINE</div><small class="muted" id="participant"></small></div>
+    <div class="timer">⏱ <span id="timer">30:00</span></div>
+  </header>
+
+  <div class="exam">
+    <aside class="card sidebar">
+      <h3>Navigasi Soal</h3>
+      <div class="muted" id="count">0/10 terjawab</div>
+      <div class="progress"><div id="bar" style="width:0%"></div></div>
+      <div class="palette" id="palette"></div>
+      <div class="legend">🟢 Sudah dijawab<br>⚪ Belum dijawab<br>🔵 Soal aktif</div>
+    </aside>
+
+    <main class="main">
+      <section class="card question">
+        <div class="qhead">
+          <div><span class="badge" id="qnumber">Soal 1</span><h2 id="questionText" style="margin-top:14px"></h2></div>
+        </div>
+        <div id="options" class="options"></div>
+        <div class="actions">
+          <button class="btn secondary" onclick="prevQuestion()">← Sebelumnya</button>
+          <div class="right-actions">
+            <button class="btn secondary" onclick="clearAnswer()">Hapus Jawaban</button>
+            <button class="btn primary" onclick="nextQuestion()">Berikutnya →</button>
+          </div>
+        </div>
+      </section>
+      <button class="btn danger" style="margin-top:15px;float:right" onclick="finishExam()">Selesai & Kumpulkan</button>
+    </main>
+  </div>
+</div>
+
+<div id="resultPage" class="hidden">
+  <div class="card result">
+    <div class="logo" style="margin:0 auto 18px">✓</div>
+    <h1>Ujian Selesai</h1>
+    <p class="muted" id="resultName"></p>
+    <div class="muted" style="margin-top:18px;font-weight:700">SKOR AKHIR</div>
+    <div class="score" id="score">0</div>
+    <p id="detail" style="font-size:16px"></p>
+    <div style="margin:22px 0;padding:15px;border-radius:12px;background:#f4f8ff">
+      <b id="statusText">Ujian telah dikumpulkan.</b><br>
+      <span class="muted">Nilai dihitung otomatis berdasarkan jawaban benar.</span>
+    </div>
+    <button class="btn primary" onclick="location.reload()">Kembali ke Halaman Awal</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+ {q:"Apa yang dimaksud dengan mean dalam statistik?",o:["Nilai tengah setelah data diurutkan","Jumlah seluruh data dibagi banyaknya data","Nilai yang paling sering muncul","Selisih nilai terbesar dan terkecil"],a:1},
+ {q:"Jika rata-rata 5, 7, 8, 10 adalah ...",o:["6,5","7","7,5","8"],a:2},
+ {q:"Ukuran penyebaran data yang menggunakan akar dari varians adalah ...",o:["Median","Modus","Standar deviasi","Kuartil"],a:2},
+ {q:"Data yang berbentuk kategori seperti jenis kelamin disebut data ...",o:["Kuantitatif","Kualitatif","Kontinu","Rasio"],a:1},
+ {q:"Jika nilai p-value < 0,05 pada uji hipotesis, keputusan yang umum adalah ...",o:["Menerima H0","Menolak H0","Menghapus data","Menambah sampel"],a:1},
+ {q:"Koefisien korelasi bernilai -1 menunjukkan hubungan ...",o:["Positif sempurna","Tidak ada hubungan","Negatif sempurna","Lemah"],a:2},
+ {q:"Dalam regresi linear, variabel yang dijelaskan disebut ...",o:["Variabel dependen","Variabel independen","Variabel kontrol","Variabel dummy"],a:0},
+ {q:"Median adalah ...",o:["Rata-rata data","Nilai yang paling sering muncul","Nilai tengah data yang telah diurutkan","Nilai maksimum"],a:2},
+ {q:"Sampel adalah ...",o:["Seluruh anggota populasi","Sebagian anggota populasi yang diteliti","Kesalahan penelitian","Variabel penelitian"],a:1},
+ {q:"Tujuan utama statistik deskriptif adalah ...",o:["Menggambarkan karakteristik data","Membuktikan sebab-akibat","Membuat kebijakan otomatis","Menghilangkan seluruh outlier"],a:0}
+];
+
+let current=0, answers=Array(questions.length).fill(null), seconds=1800, timerInterval, participantName="";
+
+function startExam(){
+ const name=document.getElementById("name").value.trim();
+ const code=document.getElementById("code").value.trim();
+ if(!name||!code){alert("Nama dan kode peserta wajib diisi.");return}
+ participantName=name;
+ document.getElementById("participant").textContent=name+" • "+code;
+ document.getElementById("loginPage").style.display="none";
+ document.getElementById("app").style.display="block";
+ renderPalette();renderQuestion();startTimer();
+}
+function renderPalette(){
+ const p=document.getElementById("palette");
+ p.innerHTML="";
+ questions.forEach((_,i)=>{
+  const b=document.createElement("button");
+  b.className="num "+(answers[i]!==null?"answered ":"")+(i===current?"current":"");
+  b.textContent=i+1;b.onclick=()=>{current=i;renderPalette();renderQuestion()};
+  p.appendChild(b);
+ });
+ updateProgress();
+}
+function updateProgress(){
+ const n=answers.filter(x=>x!==null).length;
+ document.getElementById("count").textContent=n+"/"+questions.length+" terjawab";
+ document.getElementById("bar").style.width=(n/questions.length*100)+"%";
+}
+function renderQuestion(){
+ const item=questions[current];
+ document.getElementById("qnumber").textContent="Soal "+(current+1)+" dari "+questions.length;
+ document.getElementById("questionText").textContent=item.q;
+ const box=document.getElementById("options");box.innerHTML="";
+ item.o.forEach((text,i)=>{
+  const label=document.createElement("label");
+  label.className="option "+(answers[current]===i?"selected":"");
+  label.innerHTML=`<input type="radio" name="answer" ${answers[current]===i?"checked":""}> <span><b>${String.fromCharCode(65+i)}.</b> ${text}</span>`;
+  label.querySelector("input").onchange=()=>{answers[current]=i;renderPalette();renderQuestion()};
+  box.appendChild(label);
+ });
+}
+function prevQuestion(){if(current>0){current--;renderPalette();renderQuestion()}}
+function nextQuestion(){if(current<questions.length-1){current++;renderPalette();renderQuestion()}else finishExam()}
+function clearAnswer(){answers[current]=null;renderPalette();renderQuestion()}
+function startTimer(){
+ timerInterval=setInterval(()=>{
+  seconds--;
+  const m=String(Math.floor(seconds/60)).padStart(2,"0"),s=String(seconds%60).padStart(2,"0");
+  document.getElementById("timer").textContent=m+":"+s;
+  if(seconds<=0){clearInterval(timerInterval);finishExam(true)}
+ },1000);
+}
+function finishExam(auto=false){
+ if(!auto&&!confirm("Yakin ingin mengumpulkan ujian? Jawaban yang sudah dipilih akan dinilai."))return;
+ clearInterval(timerInterval);
+ let correct=0;
+ answers.forEach((x,i)=>{if(x===questions[i].a)correct++});
+ const score=Math.round(correct/questions.length*100);
+ document.getElementById("app").style.display="none";
+ document.getElementById("resultPage").classList.remove("hidden");
+ document.getElementById("resultName").textContent=participantName;
+ document.getElementById("score").textContent=score;
+ document.getElementById("detail").textContent=`Jawaban benar: ${correct} dari ${questions.length} soal.`;
+}
+</script>
+</body>
+</html>
